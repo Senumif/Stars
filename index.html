@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>Senumi &amp; The Stars</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;width:100%;overflow-x:hidden;}
+body{font-family:'DM Sans',sans-serif;background:#060d20;}
+
+.app{min-height:100vh;width:100%;position:relative;display:flex;flex-direction:column;align-items:center;overflow:hidden;}
+
+/* ── background sky ── */
+.bg{position:absolute;inset:0;z-index:0;}
+
+/* ── animated stars canvas ── */
+#starCanvas{position:absolute;inset:0;z-index:1;pointer-events:none;}
+
+/* ── Senumi photo ── */
+.photo-bg{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  background-size:cover;
+  background-position:center top;
+  background-repeat:no-repeat;
+}
+.photo-bg::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(to right, rgba(4,10,30,0.92) 0%, rgba(4,10,30,0.7) 45%, rgba(4,10,30,0.1) 100%),
+    linear-gradient(to top, rgba(4,10,30,0.98) 0%, rgba(4,10,30,0.55) 35%, transparent 65%);
+}
+
+/* ── ocean overlay ── */
+.ocean{position:absolute;bottom:0;left:0;right:0;z-index:3;pointer-events:none;}
+
+/* ── content ── */
+.content{position:relative;z-index:6;width:100%;max-width:420px;padding:env(safe-area-inset-top,2rem) 1.5rem 2.5rem;display:flex;flex-direction:column;align-items:flex-start;}
+
+.app-label{font-size:10px;letter-spacing:0.26em;text-transform:uppercase;color:rgba(180,220,255,0.6);margin-bottom:0.3rem;margin-top:2rem;}
+.app-title{font-family:'Cinzel Decorative',serif;font-size:clamp(1.2rem,5vw,1.55rem);font-weight:400;color:#fff;line-height:1.3;margin-bottom:0.2rem;text-shadow:0 2px 24px rgba(0,60,140,0.6);}
+.app-title span{color:#7dd4f8;}
+.birthday-tag{font-size:10px;color:rgba(180,220,255,0.5);letter-spacing:0.1em;margin-bottom:0.6rem;}
+
+/* ── birthday countdown ── */
+.countdown-bar{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:1.4rem;
+  background:rgba(255,200,100,0.07);
+  border:0.5px solid rgba(255,200,100,0.25);
+  border-radius:14px;padding:8px 14px;
+  width:100%;
+}
+.countdown-cake{font-size:16px;}
+.countdown-text{font-size:11px;color:rgba(255,220,140,0.85);letter-spacing:0.05em;line-height:1.4;}
+.countdown-days{font-family:'Cinzel Decorative',serif;font-size:1.05rem;color:#ffd980;margin-right:2px;}
+
+/* photo upload btn */
+.photo-upload-btn{
+  display:flex;align-items:center;gap:6px;
+  margin-bottom:1.1rem;
+  background:rgba(255,255,255,0.08);
+  border:0.5px solid rgba(100,180,255,0.3);
+  border-radius:20px;padding:6px 14px;
+  cursor:pointer;color:rgba(180,220,255,0.75);
+  font-size:11px;letter-spacing:0.08em;
+  transition:background 0.2s;
+}
+.photo-upload-btn:hover{background:rgba(255,255,255,0.14);}
+.photo-upload-btn svg{flex-shrink:0;}
+
+/* toggle */
+.toggle-wrap{display:flex;gap:5px;margin-bottom:1.4rem;background:rgba(0,20,60,0.55);border:0.5px solid rgba(100,180,255,0.2);border-radius:30px;padding:4px;}
+.toggle-btn{padding:6px 16px;border-radius:24px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:0.06em;cursor:pointer;color:rgba(180,220,255,0.65);transition:all 0.25s;}
+.toggle-btn.ac{background:linear-gradient(135deg,#3a7abf,#1a4a90);color:white;}
+.toggle-btn.av{background:linear-gradient(135deg,#2d9e6a,#1a6645);color:white;}
+
+/* tab nav */
+.tab-nav{display:flex;gap:0;margin-bottom:1rem;border-radius:14px;overflow:hidden;border:0.5px solid rgba(100,180,255,0.18);width:100%;}
+.tab-btn{flex:1;padding:8px 0;border:none;background:rgba(4,12,40,0.6);font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:0.07em;cursor:pointer;color:rgba(150,200,255,0.55);transition:all 0.22s;backdrop-filter:blur(8px);}
+.tab-btn.tab-ac{background:rgba(30,60,120,0.7);color:#b8d8ff;}
+
+/* card */
+.card{width:100%;background:rgba(4,12,40,0.65);border:0.5px solid rgba(100,180,255,0.22);border-radius:20px;padding:1.4rem;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
+.card-top{display:flex;align-items:center;gap:10px;margin-bottom:1rem;}
+.sign-icon{width:36px;height:36px;border-radius:50%;background:rgba(100,180,255,0.1);border:0.5px solid rgba(100,180,255,0.22);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.sign-name-text{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:300;color:#c8e8ff;letter-spacing:0.04em;display:block;}
+.ctx-lbl{font-size:10px;color:rgba(150,200,255,0.48);letter-spacing:0.09em;display:block;}
+
+.badge{display:inline-block;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;padding:3px 12px;border-radius:20px;margin-bottom:0.8rem;}
+.bc{background:rgba(60,120,210,0.2);color:#8ec8ff;border:0.5px solid rgba(100,180,255,0.22);}
+.bv{background:rgba(50,150,90,0.2);color:#7de0b0;border:0.5px solid rgba(80,200,130,0.22);}
+
+.quote-text{font-family:'Cormorant Garamond',serif;font-size:1.18rem;font-weight:300;font-style:italic;line-height:1.78;color:#e8f4ff;margin-bottom:1rem;}
+.divl{width:28px;height:0.5px;background:rgba(100,180,255,0.28);margin-bottom:0.8rem;}
+.rlbl{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(150,200,255,0.43);margin-bottom:0.4rem;}
+.rtext{font-size:12px;font-weight:300;line-height:1.7;color:rgba(200,230,255,0.7);}
+
+.loading-dots{display:none;gap:5px;justify-content:center;padding:1.5rem 0;}
+.loading-dots span{width:6px;height:6px;border-radius:50%;background:#6ab4f0;animation:dp 1.2s ease-in-out infinite;}
+.loading-dots span:nth-child(2){animation-delay:0.2s;}
+.loading-dots span:nth-child(3){animation-delay:0.4s;}
+@keyframes dp{0%,80%,100%{transform:scale(0.7);opacity:0.35;}40%{transform:scale(1);opacity:1;}}
+.qbody{transition:opacity 0.3s;}
+
+.btn-gen{margin-top:1.2rem;width:100%;padding:0.85rem;border:none;border-radius:14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:400;letter-spacing:0.05em;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;gap:7px;transition:opacity 0.2s,transform 0.15s;}
+.btn-gen:active{opacity:0.8;transform:scale(0.98);}
+.btnc{background:linear-gradient(135deg,#3a7abf,#1a4a90);}
+.btnv{background:linear-gradient(135deg,#2d9e6a,#1a6645);}
+
+/* ── weekly horoscope panel ── */
+.week-panel{display:none;width:100%;}
+.week-loading{display:none;gap:5px;justify-content:center;padding:2rem 0;}
+.week-loading span{width:6px;height:6px;border-radius:50%;background:#6ab4f0;animation:dp 1.2s ease-in-out infinite;}
+.week-loading span:nth-child(2){animation-delay:0.2s;}
+.week-loading span:nth-child(3){animation-delay:0.4s;}
+
+.week-intro{font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-style:italic;font-weight:300;color:#c8e8ff;line-height:1.7;margin-bottom:1.2rem;}
+.week-days{display:flex;flex-direction:column;gap:8px;}
+.day-row{background:rgba(4,12,40,0.5);border:0.5px solid rgba(100,180,255,0.15);border-radius:12px;padding:10px 14px;}
+.day-name{font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(150,200,255,0.5);margin-bottom:3px;}
+.day-text{font-size:12px;font-weight:300;color:rgba(210,235,255,0.8);line-height:1.6;}
+.day-row.day-today{border-color:rgba(125,212,248,0.38);background:rgba(20,50,110,0.45);}
+.day-row.day-today .day-name{color:#7dd4f8;}
+
+.btn-week{margin-top:1rem;width:100%;padding:0.75rem;border:0.5px solid rgba(100,180,255,0.28);border-radius:14px;font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:0.05em;cursor:pointer;color:rgba(180,220,255,0.8);background:rgba(10,25,70,0.5);display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.2s;}
+.btn-week:hover{background:rgba(20,45,110,0.6);}
+
+/* entrance animation */
+.content > *{opacity:0;transform:translateY(16px);animation:fadeUp 0.6s forwards;}
+.app-label{animation-delay:0.1s;}
+.app-title{animation-delay:0.2s;}
+.birthday-tag{animation-delay:0.28s;}
+.countdown-bar{animation-delay:0.34s;}
+.photo-upload-btn{animation-delay:0.38s;}
+.toggle-wrap{animation-delay:0.42s;}
+.tab-nav{animation-delay:0.46s;}
+.card,.week-panel{animation-delay:0.52s;}
+@keyframes fadeUp{to{opacity:1;transform:none;}}
+
+/* shooting star */
+@keyframes shoot{
+  0%{transform:translateX(0) translateY(0);opacity:1;}
+  100%{transform:translateX(220px) translateY(120px);opacity:0;}
+}
+.shoot{position:absolute;width:2px;height:2px;border-radius:50%;background:white;pointer-events:none;z-index:2;}
+.shoot::after{content:'';position:absolute;top:50%;right:0;transform:translateY(-50%);width:60px;height:1px;background:linear-gradient(to left,white,transparent);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- sky SVG background -->
+  <svg class="bg" viewBox="0 0 400 860" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#04080f"/>
+        <stop offset="22%" stop-color="#07112a"/>
+        <stop offset="45%" stop-color="#0a2248"/>
+        <stop offset="62%" stop-color="#124070"/>
+        <stop offset="74%" stop-color="#1a6888"/>
+        <stop offset="82%" stop-color="#2a90a8"/>
+        <stop offset="89%" stop-color="#d4743a"/>
+        <stop offset="95%" stop-color="#a84020"/>
+        <stop offset="100%" stop-color="#6a1a08"/>
+      </linearGradient>
+      <linearGradient id="seaG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1a8098"/>
+        <stop offset="45%" stop-color="#0c4868"/>
+        <stop offset="100%" stop-color="#050e1c"/>
+      </linearGradient>
+      <radialGradient id="sunG" cx="50%" cy="50%">
+        <stop offset="0%" stop-color="#ffe09a" stop-opacity="0.85"/>
+        <stop offset="60%" stop-color="#e07030" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#e07030" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="860" fill="url(#skyG)"/>
+    <ellipse cx="200" cy="618" rx="260" ry="65" fill="url(#sunG)" opacity="0.5"/>
+    <circle cx="200" cy="612" r="20" fill="#ffe8a0" opacity="0.65"/>
+    <line x1="200" y1="612" x2="200" y2="700" stroke="rgba(255,220,120,0.3)" stroke-width="32"/>
+    <!-- static base stars (canvas adds animated ones on top) -->
+    <circle cx="28" cy="18" r="1.3" fill="white" opacity="0.9"/>
+    <circle cx="72" cy="9" r="0.8" fill="white" opacity="0.7"/>
+    <circle cx="115" cy="26" r="1.5" fill="white" opacity="0.85"/>
+    <circle cx="162" cy="11" r="0.9" fill="white" opacity="0.7"/>
+    <circle cx="197" cy="33" r="1.1" fill="white" opacity="0.8"/>
+    <circle cx="237" cy="13" r="0.7" fill="white" opacity="0.62"/>
+    <circle cx="278" cy="27" r="1.4" fill="white" opacity="0.88"/>
+    <circle cx="320" cy="9" r="1.0" fill="white" opacity="0.72"/>
+    <circle cx="362" cy="21" r="0.8" fill="white" opacity="0.78"/>
+    <circle cx="47" cy="46" r="0.9" fill="white" opacity="0.6"/>
+    <circle cx="94" cy="58" r="1.1" fill="white" opacity="0.72"/>
+    <circle cx="140" cy="40" r="0.7" fill="white" opacity="0.6"/>
+    <circle cx="187" cy="60" r="1.3" fill="white" opacity="0.82"/>
+    <circle cx="228" cy="43" r="0.8" fill="white" opacity="0.66"/>
+    <circle cx="268" cy="62" r="1.0" fill="white" opacity="0.76"/>
+    <circle cx="308" cy="49" r="0.6" fill="white" opacity="0.54"/>
+    <circle cx="350" cy="36" r="1.2" fill="white" opacity="0.72"/>
+    <circle cx="14" cy="80" r="1.0" fill="white" opacity="0.62"/>
+    <circle cx="60" cy="94" r="0.8" fill="white" opacity="0.56"/>
+    <circle cx="107" cy="76" r="1.2" fill="white" opacity="0.76"/>
+    <circle cx="155" cy="94" r="0.7" fill="white" opacity="0.54"/>
+    <circle cx="204" cy="80" r="1.1" fill="white" opacity="0.72"/>
+    <circle cx="250" cy="96" r="0.9" fill="white" opacity="0.66"/>
+    <circle cx="295" cy="82" r="1.2" fill="white" opacity="0.76"/>
+    <circle cx="340" cy="98" r="0.7" fill="white" opacity="0.56"/>
+    <circle cx="380" cy="73" r="0.9" fill="white" opacity="0.68"/>
+    <circle cx="36" cy="118" r="0.8" fill="white" opacity="0.48"/>
+    <circle cx="88" cy="126" r="1.0" fill="white" opacity="0.62"/>
+    <circle cx="138" cy="110" r="0.6" fill="white" opacity="0.48"/>
+    <circle cx="183" cy="130" r="1.1" fill="white" opacity="0.68"/>
+    <circle cx="233" cy="114" r="0.8" fill="white" opacity="0.58"/>
+    <circle cx="282" cy="128" r="1.2" fill="white" opacity="0.64"/>
+    <circle cx="328" cy="112" r="0.7" fill="white" opacity="0.53"/>
+    <circle cx="374" cy="122" r="0.9" fill="white" opacity="0.6"/>
+    <!-- ocean waves -->
+    <path d="M0 648 Q50 624 100 645 Q150 666 200 638 Q250 610 300 640 Q350 668 400 636 L400 860 L0 860Z" fill="url(#seaG)"/>
+    <path d="M0 666 Q40 654 82 668 Q124 682 164 664 Q204 646 244 666 Q284 684 324 663 Q364 643 400 660 L400 700 Q364 686 324 698 Q284 710 244 693 Q204 676 164 692 Q124 708 82 694 Q40 680 0 694Z" fill="rgba(18,95,135,0.5)"/>
+    <path d="M0 720 Q60 706 120 720 Q180 734 240 718 Q300 703 360 720 Q380 725 400 720 L400 860 L0 860Z" fill="rgba(6,18,40,0.65)"/>
+    <path d="M22 660 Q36 655 50 660" stroke="rgba(140,215,255,0.35)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+    <path d="M118 642 Q134 636 150 642" stroke="rgba(140,215,255,0.3)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    <path d="M248 625 Q267 619 285 625" stroke="rgba(140,215,255,0.35)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+    <path d="M330 642 Q344 637 358 642" stroke="rgba(140,215,255,0.28)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+    <!-- LEFT palm tree -->
+    <path d="M14 860 Q14 800 18 750 Q20 718 24 685" stroke="#152808" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <path d="M24 685 Q2 648 -14 625" stroke="#152808" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M24 685 Q54 644 74 618" stroke="#152808" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M24 685 Q4 668 -12 672" stroke="#152808" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M24 685 Q48 668 68 664" stroke="#152808" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M24 685 Q18 658 14 640" stroke="#152808" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="-12" cy="626" rx="30" ry="10" fill="#1e4010" transform="rotate(-20,-12,626)"/>
+    <ellipse cx="75" cy="619" rx="30" ry="10" fill="#1e4010" transform="rotate(14,75,619)"/>
+    <ellipse cx="-10" cy="673" rx="24" ry="9" fill="#1e4010" transform="rotate(-32,-10,673)"/>
+    <ellipse cx="69" cy="664" rx="24" ry="9" fill="#1e4010" transform="rotate(10,69,664)"/>
+    <ellipse cx="14" cy="641" rx="18" ry="7" fill="#1e4010" transform="rotate(-8,14,641)"/>
+    <!-- RIGHT palm tree -->
+    <path d="M386 860 Q386 800 382 750 Q380 718 376 685" stroke="#152808" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <path d="M376 685 Q396 648 414 625" stroke="#152808" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M376 685 Q346 644 326 618" stroke="#152808" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M376 685 Q396 668 412 672" stroke="#152808" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M376 685 Q352 668 332 664" stroke="#152808" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M376 685 Q382 658 386 640" stroke="#152808" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="414" cy="626" rx="30" ry="10" fill="#1e4010" transform="rotate(20,414,626)"/>
+    <ellipse cx="325" cy="619" rx="30" ry="10" fill="#1e4010" transform="rotate(-14,325,619)"/>
+    <ellipse cx="412" cy="673" rx="24" ry="9" fill="#1e4010" transform="rotate(32,412,673)"/>
+    <ellipse cx="331" cy="664" rx="24" ry="9" fill="#1e4010" transform="rotate(-10,331,664)"/>
+    <ellipse cx="386" cy="641" rx="18" ry="7" fill="#1e4010" transform="rotate(8,386,641)"/>
+  </svg>
+
+  <!-- animated star canvas -->
+  <canvas id="starCanvas"></canvas>
+
+  <!-- Senumi photo background -->
+  <div class="photo-bg" id="photoBg"></div>
+
+  <!-- ocean on top of photo -->
+  <svg class="ocean" viewBox="0 0 400 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="height:160px;">
+    <path d="M0 40 Q50 18 100 38 Q150 58 200 30 Q250 4 300 35 Q350 62 400 28 L400 120 L0 120Z" fill="rgba(6,14,34,0.7)"/>
+  </svg>
+
+  <!-- hidden file input -->
+  <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="handlePhoto(event)"/>
+
+  <div class="content">
+    <p class="app-label">your personal reading</p>
+    <h1 class="app-title">Senumi <span>&amp;</span><br>The Stars</h1>
+    <p class="birthday-tag">born 13 september 2000 &nbsp;·&nbsp; ♋ &nbsp;·&nbsp; ♍</p>
+
+    <!-- Birthday Countdown -->
+    <div class="countdown-bar" id="countdownBar">
+      <span class="countdown-cake">🎂</span>
+      <div class="countdown-text" id="countdownText">Loading...</div>
+    </div>
+
+    <label for="photoInput" class="photo-upload-btn">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3.5" stroke="rgba(180,220,255,0.8)" stroke-width="1.2"/><rect x="1" y="3" width="14" height="10" rx="2.5" stroke="rgba(180,220,255,0.8)" stroke-width="1.2" fill="none"/><path d="M5 3 L5.8 1.2 Q6 1 8 1 Q10 1 10.2 1.2 L11 3" stroke="rgba(180,220,255,0.8)" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>
+      <span id="photoLabel">Set your photo</span>
+    </label>
+
+    <!-- Zodiac sign toggle -->
+    <div class="toggle-wrap">
+      <button class="toggle-btn ac" id="btnC" onclick="sw('cancer')">♋ Sri Lanka</button>
+      <button class="toggle-btn" id="btnV" onclick="sw('virgo')">♍ International</button>
+    </div>
+
+    <!-- Daily / Weekly tab -->
+    <div class="tab-nav">
+      <button class="tab-btn tab-ac" id="tabDaily" onclick="switchTab('daily')">✨ Today's Reading</button>
+      <button class="tab-btn" id="tabWeekly" onclick="switchTab('weekly')">🌙 This Week</button>
+    </div>
+
+    <!-- Daily card -->
+    <div class="card" id="dailyPanel">
+      <div class="card-top">
+        <div class="sign-icon" id="sIcon">🌙</div>
+        <div>
+          <span class="sign-name-text" id="sName">Cancer</span>
+          <span class="ctx-lbl" id="sCtx">the moon child · water sign</span>
+        </div>
+      </div>
+
+      <div class="loading-dots" id="dots">
+        <span></span><span></span><span></span>
+      </div>
+
+      <div class="qbody" id="qbody">
+        <div class="badge bc" id="badge">heart &amp; soul</div>
+        <p class="quote-text" id="qtext">My Angel, the moon called — it wants its glow back, but I told it you're keeping it today. 🌙</p>
+        <div class="divl"></div>
+        <p class="rlbl">today's reflection</p>
+        <p class="rtext" id="rtext">Let your intuition guide you gently today. The tides within you know exactly where to flow.</p>
+      </div>
+
+      <button class="btn-gen btnc" id="genBtn" onclick="gen()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M3.3 12.7l1.4-1.4M11.3 4.7l1.4-1.4" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+        New quote for today
+      </button>
+    </div>
+
+    <!-- Weekly panel -->
+    <div class="week-panel" id="weeklyPanel">
+      <div class="card">
+        <div class="card-top">
+          <div class="sign-icon" id="wIcon">🌙</div>
+          <div>
+            <span class="sign-name-text" id="wName">Cancer</span>
+            <span class="ctx-lbl" id="wCtx">weekly forecast</span>
+          </div>
+        </div>
+
+        <div class="loading-dots week-loading" id="weekDots">
+          <span></span><span></span><span></span>
+        </div>
+
+        <div id="weekBody">
+          <p class="week-intro" id="weekIntro"></p>
+          <div class="week-days" id="weekDays"></div>
+        </div>
+
+        <button class="btn-week" id="weekGenBtn" onclick="genWeek()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M3.3 12.7l1.4-1.4M11.3 4.7l1.4-1.4" stroke="rgba(180,220,255,0.8)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Refresh weekly reading
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── Animated Stars ───────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('starCanvas');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  let W, H;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function randBetween(a, b) { return a + Math.random() * (b - a); }
+
+  function initStars() {
+    stars = [];
+    const count = Math.floor(W * H / 3200);
+    for (let i = 0; i < count; i++) {
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H * 0.52, // top 52% of screen
+        r: randBetween(0.4, 1.6),
+        baseAlpha: randBetween(0.35, 0.95),
+        alpha: 0,
+        speed: randBetween(0.004, 0.016),
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+  initStars();
+
+  let t = 0;
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    t += 0.016;
+    stars.forEach(s => {
+      s.alpha = s.baseAlpha * (0.55 + 0.45 * Math.sin(t * s.speed * 60 + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,230,255,${s.alpha})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  // Shooting stars
+  function spawnShoot() {
+    const el = document.createElement('div');
+    el.className = 'shoot';
+    const startX = randBetween(10, 80);
+    const startY = randBetween(2, 25);
+    el.style.cssText = `left:${startX}%;top:${startY}vh;animation:shoot ${randBetween(0.7,1.2)}s linear forwards;`;
+    document.querySelector('.app').appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+    setTimeout(spawnShoot, randBetween(5000, 14000));
+  }
+  setTimeout(spawnShoot, 3000);
+})();
+
+// ─── Birthday Countdown ───────────────────────────────────────────
+(function() {
+  const now = new Date();
+  const year = now.getFullYear();
+  let bday = new Date(year, 8, 13); // Sep 13
+  if (bday <= now) bday = new Date(year + 1, 8, 13);
+  const diff = bday - now;
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  const el = document.getElementById('countdownText');
+  if (days === 0) {
+    document.getElementById('countdownBar').style.borderColor = 'rgba(255,180,100,0.6)';
+    el.innerHTML = '<strong style="color:#ffd980;font-size:13px;">🎉 Happy Birthday Senumi!</strong> The stars are celebrating you today!';
+  } else if (days === 1) {
+    el.innerHTML = '<span class="countdown-days">1</span> day until your birthday · September 13th ✨';
+  } else {
+    el.innerHTML = '<span class="countdown-days">' + days + '</span> days until your birthday · September 13th ✨';
+  }
+})();
+
+// ─── App State ────────────────────────────────────────────────────
+let sign = 'cancer';
+let activeTab = 'daily';
+const today = new Date();
+const dateStr = today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
+// Load saved photo
+const savedPhoto = localStorage.getItem('senumi_photo');
+if (savedPhoto) {
+  document.getElementById('photoBg').style.backgroundImage = 'url(' + savedPhoto + ')';
+  document.getElementById('photoLabel').textContent = 'Change photo';
+}
+
+function handlePhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const dataUrl = ev.target.result;
+    document.getElementById('photoBg').style.backgroundImage = 'url(' + dataUrl + ')';
+    document.getElementById('photoLabel').textContent = 'Change photo';
+    try { localStorage.setItem('senumi_photo', dataUrl); } catch(err) {}
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─── Sign configs — DISTINCT prompts per sign ─────────────────────
+const cfg = {
+  cancer: {
+    icon:'🌙', name:'Cancer', ctx:'the moon child · water sign',
+    badge:'bc', btn:'btnc', ta:'ac',
+    // Cancer prompt: moon, water, tides, intuition, Sri Lanka beach vibes
+    prompt: `Generate a daily quote for Senumi, a Cancer ♋ woman born 13 Sep 2000.
+Today is ${dateStr}.
+Tone: romantic + funny — like a loving boyfriend who is playful and cheeky. Make her smile AND feel loved.
+IMPORTANT: The quote MUST start with either "My Angel," OR "My chuti bole," — pick one.
+Cancer themes ONLY: moon, tides, ocean, intuition, emotional depth, nurturing, moonlight, the sea breeze.
+Do NOT mention Virgo, earth, harvest, or practicality.
+Keep it light, warm, witty and sweet — 1-2 sentences.
+Return ONLY valid JSON, no markdown:
+{"category":"heart & soul|inner moon|ocean soul|nurture|love & water","quote":"starts with My Angel, OR My chuti bole, then funny+romantic 1-2 sentences, Cancer/moon/water themed","reflection":"playful yet sweet 1-2 sentence affirmation that makes her smile, moon/water themed"}`
+  },
+  virgo: {
+    icon:'🌿', name:'Virgo', ctx:'the earth goddess · earth sign',
+    badge:'bv', btn:'btnv', ta:'av',
+    // Virgo prompt: earth, nature, harvest, precision, healing herbs, international
+    prompt: `Generate a daily quote for Senumi, a Virgo ♍ woman born 13 Sep 2000.
+Today is ${dateStr}.
+Tone: romantic + funny — like a loving boyfriend who is playful and cheeky. Make her smile AND feel loved.
+IMPORTANT: The quote MUST start with either "My Angel," OR "My chuti bole," — pick one.
+Virgo themes ONLY: earth, nature, gardens, healing herbs, stars aligning through precision, gentle grace, analytical love, harvest, pure details.
+Do NOT mention the moon, tides, water signs, or ocean.
+Keep it light, warm, witty and sweet — 1-2 sentences.
+Return ONLY valid JSON, no markdown:
+{"category":"mind & growth|sacred details|earth wisdom|clarity|grace & craft","quote":"starts with My Angel, OR My chuti bole, then funny+romantic 1-2 sentences, Virgo/earth/nature themed","reflection":"playful yet sweet 1-2 sentence affirmation that makes her smile, earthy/nature themed"}`
+  }
+};
+
+// ─── Weekly horoscope prompts — also distinct per sign ────────────
+function weekPrompt(s) {
+  const monday = getWeekMonday();
+  const weekLabel = monday.toLocaleDateString('en-US',{month:'long',day:'numeric'});
+  const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  if (s === 'cancer') {
+    return `Generate a full 7-day weekly horoscope for Senumi, a Cancer ♋ woman (born 13 Sep 2000). Week starting ${weekLabel}.
+Tone: warm, poetic, slightly romantic — like a cosmic love letter. Each day should feel unique and specific.
+Cancer themes: moon phases, tides, intuition, emotional flow, water, nurturing energy.
+Return ONLY valid JSON, no markdown:
+{"intro":"2-sentence Cancer weekly overview, poetic and moon-themed","days":[${days.map(d=>`{"day":"${d}","text":"1-2 sentence Cancer/water/moon themed forecast for ${d}"}`).join(',')}]}`;
+  } else {
+    return `Generate a full 7-day weekly horoscope for Senumi, a Virgo ♍ woman (born 13 Sep 2000). Week starting ${weekLabel}.
+Tone: warm, poetic, slightly romantic — like a cosmic love letter. Each day should feel unique and specific.
+Virgo themes: earth energy, precision, healing, nature, growth, clarity, practical magic.
+Return ONLY valid JSON, no markdown:
+{"intro":"2-sentence Virgo weekly overview, poetic and earth-themed","days":[${days.map(d=>`{"day":"${d}","text":"1-2 sentence Virgo/earth/nature themed forecast for ${d}"}`).join(',')}]}`;
+  }
+}
+
+function getWeekMonday() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+}
+
+function getTodayDayName() {
+  return new Date().toLocaleDateString('en-US',{weekday:'long'});
+}
+
+// ─── UI helpers ───────────────────────────────────────────────────
+function sw(s) {
+  sign = s; const c = cfg[s];
+  document.getElementById('sIcon').textContent = c.icon;
+  document.getElementById('sName').textContent = c.name;
+  document.getElementById('sCtx').textContent = c.ctx;
+  document.getElementById('wIcon').textContent = c.icon;
+  document.getElementById('wName').textContent = c.name;
+  document.getElementById('badge').className = 'badge ' + c.badge;
+  document.getElementById('genBtn').className = 'btn-gen ' + c.btn;
+  document.getElementById('btnC').className = 'toggle-btn' + (s==='cancer' ? ' ac' : '');
+  document.getElementById('btnV').className = 'toggle-btn' + (s==='virgo' ? ' av' : '');
+  // Reset week body so it reloads for new sign
+  document.getElementById('weekIntro').textContent = '';
+  document.getElementById('weekDays').innerHTML = '';
+  if (activeTab === 'weekly') genWeek();
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tabDaily').className = 'tab-btn' + (tab==='daily'?' tab-ac':'');
+  document.getElementById('tabWeekly').className = 'tab-btn' + (tab==='weekly'?' tab-ac':'');
+  document.getElementById('dailyPanel').style.display = tab==='daily' ? 'block' : 'none';
+  document.getElementById('weeklyPanel').style.display = tab==='weekly' ? 'block' : 'none';
+  if (tab === 'weekly' && !document.getElementById('weekIntro').textContent) {
+    genWeek();
+  }
+}
+
+// ─── Daily quote generation ───────────────────────────────────────
+async function gen(isAuto) {
+  const btn = document.getElementById('genBtn');
+  const dots = document.getElementById('dots');
+  const body = document.getElementById('qbody');
+  btn.disabled = true; btn.style.opacity = '0.5';
+  body.style.opacity = '0'; dots.style.display = 'flex';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user', content: cfg[sign].prompt}]
+      })
+    });
+    const data = await res.json();
+    const raw = data.content.find(b=>b.type==='text')?.text || '{}';
+    const p = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    document.getElementById('badge').textContent = p.category || '';
+    document.getElementById('qtext').textContent = p.quote || '';
+    document.getElementById('rtext').textContent = p.reflection || '';
+    const todayKey = 'senumi_quote_' + sign + '_' + new Date().toISOString().slice(0,10);
+    try { localStorage.setItem(todayKey, JSON.stringify({category:p.category,quote:p.quote,reflection:p.reflection,sign})); } catch(e){}
+  } catch(e) {
+    const opener = Math.random() < 0.5 ? 'My Angel,' : 'My chuti bole,';
+    document.getElementById('qtext').textContent = sign==='cancer'
+      ? opener + ' you are the reason the moon works overtime — even the tides are jealous of how you move.'
+      : opener + ' you are so perfectly organised that even the stars take notes. Lucky me for being in your universe.';
+    document.getElementById('rtext').textContent = 'You are exactly where you need to be today.';
+  }
+  dots.style.display = 'none'; body.style.opacity = '1';
+  btn.disabled = false; btn.style.opacity = '1';
+}
+
+// ─── Weekly horoscope generation ─────────────────────────────────
+async function genWeek() {
+  const btn = document.getElementById('weekGenBtn');
+  const dots = document.getElementById('weekDots');
+  const intro = document.getElementById('weekIntro');
+  const daysEl = document.getElementById('weekDays');
+  btn.disabled = true; btn.style.opacity = '0.5';
+  intro.textContent = ''; daysEl.innerHTML = '';
+  dots.style.display = 'flex';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user', content: weekPrompt(sign)}]
+      })
+    });
+    const data = await res.json();
+    const raw = data.content.find(b=>b.type==='text')?.text || '{}';
+    const p = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    intro.textContent = p.intro || '';
+    const todayName = getTodayDayName();
+    (p.days || []).forEach(d => {
+      const row = document.createElement('div');
+      row.className = 'day-row' + (d.day === todayName ? ' day-today' : '');
+      row.innerHTML = `<div class="day-name">${d.day}${d.day===todayName?' · today':''}</div><div class="day-text">${d.text}</div>`;
+      daysEl.appendChild(row);
+    });
+  } catch(e) {
+    intro.textContent = sign==='cancer'
+      ? 'The moon guides your week with gentle waves of intuition. Trust the tides within you.'
+      : 'The earth grounds your week with steady, purposeful energy. Let your precision be your magic.';
+    daysEl.innerHTML = '<div class="day-row"><div class="day-text" style="color:rgba(180,220,255,0.5);font-size:11px;">Could not load weekly forecast. Try refreshing.</div></div>';
+  }
+  dots.style.display = 'none';
+  btn.disabled = false; btn.style.opacity = '1';
+}
+
+// ─── Auto-load today's saved quote (per sign) ─────────────────────
+(function autoDaily() {
+  const todayKey = 'senumi_quote_' + sign + '_' + new Date().toISOString().slice(0,10);
+  try {
+    const saved = localStorage.getItem(todayKey);
+    if (saved) {
+      const p = JSON.parse(saved);
+      document.getElementById('badge').textContent = p.category || '';
+      document.getElementById('qtext').textContent = p.quote || '';
+      document.getElementById('rtext').textContent = p.reflection || '';
+    } else {
+      gen(true);
+    }
+  } catch(e) { gen(true); }
+})();
+
+// Init tab display
+document.getElementById('weeklyPanel').style.display = 'none';
+</script>
+</body>
+</html>
