@@ -564,7 +564,7 @@ async function gen(isAuto) {
   body.style.opacity = '0'; dots.style.display = 'flex';
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
       body: JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:1000,
@@ -599,34 +599,92 @@ async function genWeek() {
   btn.disabled = true; btn.style.opacity = '0.5';
   intro.textContent = ''; daysEl.innerHTML = '';
   dots.style.display = 'flex';
+
+  const weekKey = 'senumi_week_' + sign + '_' + getWeekMonday().toISOString().slice(0,10);
+
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST', headers:{'Content-Type':'application/json'},
+    // Check cache first
+    const cached = localStorage.getItem(weekKey);
+    if (cached) {
+      const p = JSON.parse(cached);
+      renderWeek(p);
+      dots.style.display = 'none';
+      btn.disabled = false; btn.style.opacity = '1';
+      return;
+    }
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{role:'user', content: weekPrompt(sign)}]
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        messages: [{role: 'user', content: weekPrompt(sign)}]
       })
     });
+
+    if (!res.ok) throw new Error('API error ' + res.status);
+
     const data = await res.json();
-    const raw = data.content.find(b=>b.type==='text')?.text || '{}';
-    const p = JSON.parse(raw.replace(/```json|```/g,'').trim());
-    intro.textContent = p.intro || '';
-    const todayName = getTodayDayName();
-    (p.days || []).forEach(d => {
-      const row = document.createElement('div');
-      row.className = 'day-row' + (d.day === todayName ? ' day-today' : '');
-      row.innerHTML = `<div class="day-name">${d.day}${d.day===todayName?' · today':''}</div><div class="day-text">${d.text}</div>`;
-      daysEl.appendChild(row);
-    });
+    const raw = data.content.find(b => b.type === 'text')?.text || '{}';
+    const p = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    try { localStorage.setItem(weekKey, JSON.stringify(p)); } catch(e) {}
+    renderWeek(p);
+
   } catch(e) {
-    intro.textContent = sign==='cancer'
+    intro.textContent = sign === 'cancer'
       ? 'The moon guides your week with gentle waves of intuition. Trust the tides within you.'
       : 'The earth grounds your week with steady, purposeful energy. Let your precision be your magic.';
-    daysEl.innerHTML = '<div class="day-row"><div class="day-text" style="color:rgba(180,220,255,0.5);font-size:11px;">Could not load weekly forecast. Try refreshing.</div></div>';
+    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const todayName = getTodayDayName();
+    const fallbacks = {
+      cancer: [
+        'The moon whispers something sweet just for you today — listen closely.',
+        'Your heart knows the way even when your mind is unsure.',
+        'Let the tide carry what no longer serves you out to sea.',
+        'Someone is thinking of you more than you know. 🌙',
+        'Your intuition is your superpower — trust it fully today.',
+        'Rest like the ocean between waves. You deserve stillness.',
+        'The weekend stars shine brightest for you — enjoy every moment.'
+      ],
+      virgo: [
+        'Your attention to detail today will pay off more than you expect.',
+        'The universe rewards your consistency — keep going beautifully.',
+        'Take a breath. Your perfect plan is already unfolding.',
+        'You notice things others miss. That gift matters today.',
+        'Your care for others is a love language the world needs more of.',
+        'Rest without guilt — even the earth needs stillness to bloom.',
+        'This weekend your energy returns fully. Do something that makes you shine.'
+      ]
+    };
+    const fb = fallbacks[sign];
+    days.forEach((d, i) => {
+      const row = document.createElement('div');
+      row.className = 'day-row' + (d === todayName ? ' day-today' : '');
+      row.innerHTML = `<div class="day-name">${d}${d===todayName?' · today':''}</div><div class="day-text">${fb[i]}</div>`;
+      daysEl.appendChild(row);
+    });
   }
+
   dots.style.display = 'none';
   btn.disabled = false; btn.style.opacity = '1';
+}
+
+function renderWeek(p) {
+  const intro = document.getElementById('weekIntro');
+  const daysEl = document.getElementById('weekDays');
+  intro.textContent = p.intro || '';
+  const todayName = getTodayDayName();
+  daysEl.innerHTML = '';
+  (p.days || []).forEach(d => {
+    const row = document.createElement('div');
+    row.className = 'day-row' + (d.day === todayName ? ' day-today' : '');
+    row.innerHTML = `<div class="day-name">${d.day}${d.day===todayName?' · today':''}</div><div class="day-text">${d.text}</div>`;
+    daysEl.appendChild(row);
+  });
 }
 
 // ─── Auto-load today's saved quote (per sign) ─────────────────────
